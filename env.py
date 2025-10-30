@@ -76,10 +76,21 @@ class MeatBuyingDiscreteEnv:
         reward = 0
         reward -= total_cost / self.budget  # minimize cost!
         reward += np.sum(weights * self.is_discounted) / 1000  # Reward discounted
-        reward -= np.sum(weights * (1 - self.is_halal)) / 100  # Penalize non-halal
         reward -= (
             np.sum(weights * self.days_to_expiry < self.expiry_threshold) / 500
         )  # Penalize on choosing close to expiry meat.
+
+        # Might want to tune this factor later?
+        non_halal_penalty_factor = 0.1
+        excess_weight_penalty_factor = 0.001
+
+        # Heavy penalty for non-halal
+        non_halal_weights = weights * (1 - self.is_halal)
+        reward -= np.sum(non_halal_weights**2) * non_halal_penalty_factor
+
+        # Heavy penalty for exceeding required grams (overbuying)
+        excess = max(0, np.sum(weights) - self.required_grams)
+        reward -= (excess**2) * excess_weight_penalty_factor
 
         self.total_bought += total_weight
         self.total_cost += total_cost
